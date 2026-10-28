@@ -131,5 +131,5 @@ if a.demo:
     dcfg = dict(cfg, demo=True, sbUrl='', sbKey='')
     dhtml = html.replace('window.__MPCFG = ' + json.dumps(cfg), 'window.__MPCFG = ' + json.dumps(dcfg))
     open(os.path.join(a.out, 'try.html'), 'w', encoding='utf-8').write(dhtml)
-    print('preview link: https://briggser29.github.io/meals/try.html#' + base64.urlsafe_b64encode(key).decode().rstrip('='))
+    print('preview link: https://totentanzmealprep.github.io/try.html#' + base64.urlsafe_b64encode(key).decode().rstrip('='))
 print(f'built {len(recipes)} recipes, {n} photos -> {a.out}')
