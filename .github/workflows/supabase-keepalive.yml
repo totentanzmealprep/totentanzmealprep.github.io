@@ -1,0 +1,33 @@
+# Keeps the Meal Prep Picker's free Supabase database from pausing.
+# Supabase pauses free projects after 7 days without activity, so this
+# makes one small read every 2 days. Run it by hand from the Actions tab too.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "23 14 */2 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read from the meal-prep database
+        env:
+          SB_URL: https://eagosrmvzwyrbrdroksn.supabase.co
+          # Publishable key: the same public key the website already uses.
+          SB_KEY: sb_publishable_2JbzZzdiWiMlUrcNvpmUAw_GXAGZVK6
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o body.txt -w "%{http_code}" -X POST "$SB_URL/rest/v1/rpc/mp_get" \
+              -H "apikey: $SB_KEY" -H "Content-Type: application/json" -d '{"hh":"PING-PING"}' || echo 000)
+            echo "Attempt $attempt: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 30
+          done
+          echo "Supabase did not answer. It may already be paused: restore it from the Supabase dashboard."
+          cat body.txt || true
+          exit 1

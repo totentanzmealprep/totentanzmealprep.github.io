@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2C6943">
+<title>Meal Prep Picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a kitchen tool in three steps (Pick, Shop, Cook) under one sticky tab bar; cards on a herb-green paper ground, macros set like a nutrition label. */
+:root {
+  --paper: #F3F5EE;
+  --card: #FFFFFF;
+  --ink: #1C241E;
+  --muted: #5A665C;
+  --line: #D8DDD0;
+  --accent: #2C6943;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCEBDF;
+  --chile: #B4432D;
+  --chile-soft: #F6E1DA;
+  --gold: #C98E14;
+  --gold-soft: #F7EBCD;
+  --shadow: 0 1px 2px rgba(28,36,30,.06), 0 4px 14px rgba(28,36,30,.06);
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121713; --card: #1B221D; --ink: #E7ECE3; --muted: #9AA79C; --line: #2E3830;
+    --accent: #74C38F; --accent-ink: #0E1A12; --accent-soft: #1F3527;
+    --chile: #EE8B73; --chile-soft: #3A221C; --gold: #E5B54A; --gold-soft: #352B14;
+    --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121713; --card: #1B221D; --ink: #E7ECE3; --muted: #9AA79C; --line: #2E3830;
+  --accent: #74C38F; --accent-ink: #0E1A12; --accent-soft: #1F3527;
+  --chile: #EE8B73; --chile-soft: #3A221C; --gold: #E5B54A; --gold-soft: #352B14;
+  --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 16px; padding-block: 10px; flex-wrap: wrap; }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; margin-right: auto; }
+.brand svg { flex: none; }
+.tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.tab { border: 0; background: transparent; padding: 7px 14px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.tab .n { font-family: var(--f-mono); font-size: 12px; min-width: 20px; padding: 0 5px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+.tab[aria-selected="true"] .n { background: rgba(255,255,255,.22); color: inherit; }
+.sync { font-size: 12px; color: var(--muted); width: 100%; display: none; }
+.sync.show { display: block; }
+.hhbtn { padding: 7px 12px; border-radius: 999px; }
+.hh { display: grid; gap: 18px; }
+.hhcode { font-family: var(--f-mono); font-weight: 600; font-size: 30px; letter-spacing: .08em; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hhjoin { display: flex; gap: 8px; flex-wrap: wrap; }
+.hhjoin input { flex: 1 1 160px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-family: var(--f-mono); text-transform: uppercase; letter-spacing: .06em; }
+.hherr { color: var(--chile); font-size: 14px; min-height: 1.2em; }
+
+main { padding-block: 20px 120px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.015em; }
+h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; line-height: 1.05; }
+h2 { font-size: 22px; font-weight: 800; }
+h3 { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+.eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--muted); }
+
+/* filters */
+.mood { display: grid; gap: 14px; margin-top: 20px; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.frow { display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: start; }
+.frow .eyebrow { padding-top: 7px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--paper); padding: 5px 12px; border-radius: 999px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip.heat[aria-pressed="true"] { background: var(--chile); border-color: var(--chile); color: #fff; }
+.tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.search { flex: 1 1 220px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.btn { border: 1px solid var(--line); background: var(--card); padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--chile); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.resultbar { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 10px; gap: 12px; flex-wrap: wrap; }
+.resultbar .count { font-weight: 600; }
+.linkbtn { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+
+/* cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.rcard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rcard.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.rcard { overflow: hidden; }
+.rcard .photo { display: block; border: 0; padding: 0; margin: -14px -14px 0; width: calc(100% + 28px); background: var(--line); aspect-ratio: 4 / 3; overflow: hidden; max-width: none; }
+.rcard .photo { position: relative; }
+.servpill { position: absolute; left: 10px; bottom: 10px; background: rgba(20,26,22,.82); color: #fff; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(4px); }
+.scalebox { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.scaleserv { font-size: 15px; }
+.scaleserv b { font-family: var(--f-mono); font-size: 17px; }
+.rcard .photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 55%; display: block; transition: transform .3s ease; }
+.rcard .photo:hover img { transform: scale(1.03); }
+.recipe .hero { width: 100%; max-width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: center 55%; border-radius: 12px; background: var(--line); display: block; }
+.cookcard .recipe .hero { max-height: 320px; }
+@media (prefers-reduced-motion: reduce) { .rcard .photo img { transition: none; } }
+.rcard .title { border: 0; background: none; padding: 0; text-align: left; font-family: var(--f-display); font-weight: 700; font-size: 17px; line-height: 1.2; letter-spacing: -.01em; }
+.rcard .title:hover { color: var(--accent); }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 13px; color: var(--muted); align-items: center; }
+.heatdots { display: inline-flex; gap: 2px; }
+.heatdots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); display: block; }
+.heatdots i.on { background: var(--chile); }
+.bookline { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: -4px; }
+.heat-wrap { display: inline-flex; align-items: center; gap: 5px; }
+.heatlbl { font-weight: 600; color: var(--muted); }
+.heatlbl.h2 { color: var(--chile); }
+.label { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 12.5px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+.label div { padding: 5px 0 4px; display: flex; flex-direction: column; }
+.label b { font-weight: 600; font-size: 15px; }
+.label span { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; }
+.rfoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; }
+.badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--gold-soft); color: var(--gold); white-space: nowrap; }
+.badge.no { background: var(--chile-soft); color: var(--chile); }
+.badge.ok { background: var(--accent-soft); color: var(--accent); }
+.addbtn { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.addbtn.on { background: var(--accent); color: var(--accent-ink); }
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+
+/* week bar */
+.weekbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--ink); color: var(--paper); transform: translateY(110%); transition: transform .25s ease; }
+.weekbar.show { transform: none; }
+.weekbar .wrap { display: flex; align-items: center; gap: 12px; padding-block: 12px; }
+.weekbar .txt { flex: 1; min-width: 0; font-size: 14px; }
+.weekbar .txt b { font-family: var(--f-display); font-size: 16px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weekbar .btn { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+
+/* drawer */
+.scrim { position: fixed; inset: 0; background: rgba(10,14,11,.45); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.scrim.show { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(620px, 100%); z-index: 41; background: var(--paper); transform: translateX(102%); transition: transform .25s ease; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.drawer.show { transform: none; }
+.dhead { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.dhead .x { margin-left: auto; }
+.dbody { overflow-y: auto; padding: 18px 16px 40px; }
+@media (prefers-reduced-motion: reduce) { .drawer, .scrim, .weekbar { transition: none; } }
+
+/* recipe body */
+.recipe { display: grid; gap: 18px; }
+.recipe .label { max-width: 420px; }
+.ingsec { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 22px; }
+.ingsec h4 { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--accent); }
+.ingsec ul { margin: 0; padding: 0; list-style: none; }
+.ingsec li .us, .us { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.item .buy { font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.ingsec li { padding: 3px 0; border-bottom: 1px dotted var(--line); font-size: 14px; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+.steps li::before { content: counter(s); font-family: var(--f-mono); font-weight: 600; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 13px; }
+.booknote { background: var(--gold-soft); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.ours { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.ours textarea { width: 100%; min-height: 80px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--paper); }
+.verdicts { display: flex; flex-wrap: wrap; gap: 6px; }
+.saved { font-size: 12px; color: var(--muted); }
+
+/* shop */
+.shophead { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.weekchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.weekchip { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 14px; font-weight: 600; }
+.weekchip button { border: 0; background: var(--paper); width: 22px; height: 22px; border-radius: 50%; line-height: 1; color: var(--muted); }
+.progress { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 16px 0 6px; }
+.progress i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.aisles { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin-top: 16px; align-items: start; }
+.aisle { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px 10px; min-width: 0; }
+.aisle h3 { font-size: 15px; padding: 8px 0 6px; display: flex; justify-content: space-between; border-bottom: 2px solid var(--ink); }
+.aisle h3 span { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-weight: 500; }
+.item { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.item:last-child { border-bottom: 0; }
+.item input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); }
+.item .nm { font-weight: 600; }
+.item .amt { font-family: var(--f-mono); font-size: 12.5px; color: var(--ink); }
+.item .for { font-size: 12.5px; color: var(--muted); }
+.item details { font-size: 12.5px; color: var(--muted); }
+.item details summary { cursor: pointer; width: fit-content; }
+.item details ul { margin: 4px 0 0; padding-left: 16px; }
+.item.done .nm, .item.done .amt { text-decoration: line-through; color: var(--muted); }
+.pantry { margin-top: 18px; }
+.pantry > summary { cursor: pointer; font-family: var(--f-display); font-weight: 700; font-size: 18px; padding: 8px 0; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+
+/* cook */
+.cooklist { display: grid; gap: 18px; margin-top: 16px; }
+.cookcard { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.cookcard .chead { display: flex; justify-content: space-between; gap: 10px; align-items: start; flex-wrap: wrap; margin-bottom: 14px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 10px; font-size: 14px; z-index: 50; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+[hidden] { display: none !important; }
+
+@media (max-width: 560px) {
+  .frow { grid-template-columns: 1fr; gap: 6px; }
+  .frow .eyebrow { padding-top: 0; }
+  .brand { font-size: 18px; }
+  .tabs { width: 100%; }
+  .tab { flex: 1; justify-content: center; padding: 7px 8px; }
+  .aisles { grid-template-columns: 1fr; }
+}
+</style>
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+.lock { min-height: 100vh; display: grid; place-items: center; padding: 24px max(16px, env(safe-area-inset-left, 0px)); }
+.lockcard { width: min(420px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: grid; gap: 14px; }
+.lockcard input { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font-size: 17px; }
+.lockcard .err { color: var(--chile); font-size: 14px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<div class="lock" id="lock">
+  <form class="lockcard" id="lockform" autocomplete="on">
+    <div class="brand" style="margin:0">Meal Prep Picker</div>
+    <p class="sub" style="margin:0">Enter the passcode to open the cookbooks. You only need to do this once on each device.</p>
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode" required>
+    <button class="btn primary" type="submit" id="unlockbtn" style="justify-content:center;padding:12px">Open</button>
+    <div class="err" id="lockerr" role="alert"></div>
+  </form>
+</div>
+<div id="app" hidden>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true"><rect x="2" y="6" width="22" height="13" rx="5" fill="var(--accent)"/><rect x="5" y="2" width="16" height="5" rx="2.5" fill="var(--ink)"/><rect x="0" y="9" width="3" height="4" rx="1.5" fill="var(--ink)"/><rect x="23" y="9" width="3" height="4" rx="1.5" fill="var(--ink)"/><circle cx="13" cy="13" r="2.4" fill="var(--paper)"/></svg>
+      Meal Prep Picker
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-pick" data-view="pick" aria-selected="true">Pick</button>
+      <button class="tab" role="tab" id="tab-shop" data-view="shop" aria-selected="false">Shop <span class="n" id="n-shop">0</span></button>
+      <button class="tab" role="tab" id="tab-cook" data-view="cook" aria-selected="false">Cook <span class="n" id="n-cook">0</span></button>
+    </nav>
+    <button class="btn hhbtn" id="hh-btn" hidden>Household</button>
+    <div class="sync" id="sync"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- PICK -->
+  <section id="view-pick">
+    <h1>What are you in the mood for?</h1>
+    <p class="sub" id="pick-sub">Tap a few moods, add what sounds good to this week, and the shopping list builds itself.</p>
+    <div class="mood" id="filters"></div>
+    <div class="resultbar">
+      <div><span class="count" id="count"></span> <button class="linkbtn" id="clear" hidden>Clear moods</button></div>
+      <div class="tools">
+        <select id="sort" aria-label="Sort">
+          <option value="book">Book order</option>
+          <option value="protein">Most protein</option>
+          <option value="cal">Fewest calories</option>
+          <option value="carb">Fewest carbs</option>
+          <option value="serv">Most servings</option>
+          <option value="az">A to Z</option>
+        </select>
+        <button class="btn" id="surprise">Surprise us</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- SHOP -->
+  <section id="view-shop" hidden>
+    <div class="shophead">
+      <div>
+        <h1>Shopping list</h1>
+        <p class="sub" id="shop-sub"></p>
+      </div>
+      <div class="tools" id="shop-tools">
+        <button class="btn" id="copy">Copy list</button>
+        <button class="btn ghost" id="checkall">Check all</button>
+        <span id="newweek-wrap"><button class="btn danger" id="newweek">Start a new week</button></span>
+      </div>
+    </div>
+    <div class="weekchips" id="weekchips"></div>
+    <div id="shop-body"></div>
+  </section>
+
+  <!-- COOK -->
+  <section id="view-cook" hidden>
+    <h1>Cook</h1>
+    <p class="sub">This week's recipes, in full. Leave notes for next time and mark how they went.</p>
+    <div class="cooklist" id="cooklist"></div>
+  </section>
+</main>
+
+<div class="weekbar" id="weekbar" aria-live="polite">
+  <div class="wrap">
+    <div class="txt"><span id="wb-count"></span><b id="wb-names"></b></div>
+    <button class="btn" id="wb-go">Shopping list</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-label="Recipe">
+  <div class="dhead">
+    <span class="eyebrow" id="d-eyebrow"></span>
+    <button class="btn x" id="d-close">Close</button>
+  </div>
+  <div class="dbody" id="d-body"></div>
+</aside>
+<div class="toast" id="toast"></div>
+</div>
+<script>window.__MPCFG = {"salt": "DX+VshU3CYteaij+PfWtEQ==", "iter": 250000, "sbUrl": "", "sbKey": "", "demo": true};</script>
+<script>
+(() => {
+  const CFG = window.__MPCFG;
+  const KEY_LS = "mp-key-" + CFG.salt.slice(0, 8);
+  if (CFG.demo) {
+    // Preview mode: keep everything in memory so nothing survives a reload.
+    const mem = new Map();
+    const fake = { getItem: k => mem.has(k) ? mem.get(k) : null, setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k), clear: () => mem.clear(), key: i => [...mem.keys()][i] ?? null, get length() { return mem.size; } };
+    try { Object.defineProperty(window, "localStorage", { value: fake, configurable: true }); } catch (e) {}
+    try { Object.defineProperty(window, "sessionStorage", { value: fake, configurable: true }); } catch (e) {}
+  }
+  const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const ub64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  let KEY = null;
+
+  async function deriveKey(pass) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(CFG.salt), iterations: CFG.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+  }
+  async function decrypt(key, buf) {
+    const u = new Uint8Array(buf);
+    return crypto.subtle.decrypt({ name: "AES-GCM", iv: u.slice(0, 12) }, key, u.slice(12));
+  }
+  async function fetchBin(path) {
+    const r = await fetch(path, { cache: "no-cache" });
+    if (!r.ok) throw new Error("load " + path + " " + r.status);
+    return r.arrayBuffer();
+  }
+
+  // ---------- photos: decrypt on demand as they scroll into view ----------
+  const photoCache = new Map();
+  function loadPhoto(id) {
+    if (!photoCache.has(id)) {
+      photoCache.set(id, fetchBin("photos/" + id + ".bin").then(b => decrypt(KEY, b)).then(p => URL.createObjectURL(new Blob([p], { type: "image/webp" }))).catch(() => null));
+    }
+    return photoCache.get(id);
+  }
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      const img = e.target; io.unobserve(img);
+      loadPhoto(img.dataset.photo).then(u => { if (u) img.src = u; else img.remove(); });
+    }
+  }, { rootMargin: "400px" });
+  function watch(root) {
+    root.querySelectorAll?.("img[data-photo]").forEach(img => {
+      if (img.__w) return; img.__w = 1;
+      const id = img.dataset.photo;
+      const p = photoCache.get(id);
+      if (p) p.then(u => { if (u) img.src = u; }); else io.observe(img);
+    });
+  }
+  new MutationObserver(ms => { for (const m of ms) m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.matches?.("img[data-photo]")) watch(n.parentNode); else watch(n); } }); })
+    .observe(document.body, { childList: true, subtree: true });
+
+  // ---------- device identity (no accounts) ----------
+  let device = null;
+  try { device = localStorage.getItem("mp-device"); } catch (e) {}
+  if (!device) { device = "d" + Math.random().toString(36).slice(2, 12); try { localStorage.setItem("mp-device", device); } catch (e) {} }
+  const user = { id: async () => device, can: async () => true, isOwner: () => false, canEdit: () => true };
+
+  // ---------- Supabase-backed store with the same shape the app expects ----------
+  function makeDb() {
+    if (!CFG.sbUrl || !CFG.sbKey) return null;
+    const headers = { apikey: CFG.sbKey, "Content-Type": "application/json" };
+    if (!CFG.sbKey.startsWith("sb_")) headers.Authorization = "Bearer " + CFG.sbKey;
+    const sync = () => document.getElementById("sync");
+    function status(ok) {
+      const el = sync(); if (!el) return;
+      if (ok) { if (el.dataset.off) { el.textContent = ""; el.classList.remove("show"); delete el.dataset.off; } }
+      else { el.textContent = "Can't reach the sync server right now. Changes will show up once you're back online."; el.classList.add("show"); el.dataset.off = "1"; }
+    }
+    async function rpc(fn, body) {
+      let r;
+      try { r = await fetch(CFG.sbUrl + "/rest/v1/rpc/" + fn, { method: "POST", headers, body: JSON.stringify(body) }); }
+      catch (e) { status(false); throw { code: "unavailable", message: String(e) }; }
+      if (!r.ok) { const t = await r.text(); if (r.status >= 500) status(false); throw { code: r.status >= 500 ? "unavailable" : "invalid_argument", message: t }; }
+      status(true);
+      const t = await r.text(); return t ? JSON.parse(t) : null;
+    }
+    const KINDS = ["picks", "checks", "recipes"];
+    const H = {};
+    function hh(code) {
+      if (!H[code]) H[code] = { rows: Object.fromEntries(KINDS.map(k => [k, new Map()])), ls: Object.fromEntries(KINDS.map(k => [k, new Set()])), loaded: false, pending: 0, busy: false };
+      return H[code];
+    }
+    const sortStr = m => JSON.stringify([...m].sort((x, y) => x[0] < y[0] ? -1 : 1));
+    function snap(h, kind) { const docs = [...h.rows[kind]].map(([id, d]) => ({ id, exists: true, data: () => d, metadata: { fromCache: false, hasPendingWrites: false } })); return { docs, size: docs.length, empty: !docs.length, docChanges: () => [] }; }
+    function emit(h, kind) { const s = snap(h, kind); h.ls[kind].forEach(f => { try { f(s); } catch (e) { console.error(e); } }); }
+    async function refresh(code) {
+      const h = hh(code); if (h.busy || h.pending) return; h.busy = true;
+      try {
+        const rows = (await rpc("mp_get", { hh: code })) || [];
+        const mig = window.__MP.migrate;
+        if (mig && mig.hh === code && rows.length === 0 && !localStorage.getItem("mp-migrated-" + code)) {
+          for (const r of mig.rows) await rpc("mp_put", { hh: code, k: r.kind, ky: r.key, d: r.data });
+          try { localStorage.setItem("mp-migrated-" + code, "1"); } catch (e) {}
+          h.busy = false; return refresh(code);
+        }
+        if (h.pending) return;
+        const next = Object.fromEntries(KINDS.map(k => [k, new Map()]));
+        for (const r of rows) if (next[r.kind]) next[r.kind].set(r.key, r.data);
+        for (const k of KINDS) { const changed = sortStr(h.rows[k]) !== sortStr(next[k]); h.rows[k] = next[k]; if (changed || !h.loaded) emit(h, k); }
+        h.loaded = true;
+      } catch (e) { /* keep last known state */ }
+      finally { h.busy = false; }
+    }
+    setInterval(() => { if (document.visibilityState !== "visible") return; for (const c in H) if (KINDS.some(k => H[c].ls[k].size)) refresh(c); }, 7000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") for (const c in H) refresh(c); });
+    window.addEventListener("focus", () => { for (const c in H) refresh(c); });
+
+    function docRef(code, kind, id) {
+      const h = hh(code);
+      return {
+        id, path: `households/${code}/${kind}/${id}`,
+        async get() { await refresh(code); const d = h.rows[kind].get(id); return { id, exists: d !== undefined, data: () => d }; },
+        async set(data) { h.pending++; h.rows[kind].set(id, data); emit(h, kind); try { await rpc("mp_put", { hh: code, k: kind, ky: id, d: data }); } finally { h.pending--; } },
+        async update(data) { const cur = h.rows[kind].get(id) || {}; return this.set({ ...cur, ...data }); },
+        async delete() { h.pending++; h.rows[kind].delete(id); emit(h, kind); try { await rpc("mp_del", { hh: code, k: kind, ky: id }); } finally { h.pending--; } },
+      };
+    }
+    function localDoc(path) {
+      const k = "mp-doc-" + path;
+      return {
+        async get() { let v = null; try { v = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {} return { exists: !!v, data: () => v || undefined }; },
+        async set(d) { try { localStorage.setItem(k, JSON.stringify(d)); } catch (e) {} },
+      };
+    }
+    return {
+      collection(path) {
+        const m = path.match(/^households\/([A-Z0-9-]+)\/(picks|checks|recipes)$/);
+        if (!m) throw new TypeError("unsupported collection " + path);
+        const code = m[1], kind = m[2], h = hh(code);
+        return {
+          path,
+          doc: id => docRef(code, kind, id),
+          onSnapshot(cb) {
+            h.ls[kind].add(cb);
+            if (h.loaded) setTimeout(() => cb(snap(h, kind)), 0); else refresh(code);
+            return () => h.ls[kind].delete(cb);
+          },
+          async get() { await refresh(code); return snap(h, kind); },
+        };
+      },
+      doc(path) {
+        const m = path.match(/^households\/([A-Z0-9-]+)\/(picks|checks|recipes)\/(.+)$/);
+        if (m) return docRef(m[1], m[2], m[3]);
+        if (path === "meta/owner") return { async get() { return { exists: false, data: () => undefined }; }, async set() {} };
+        return localDoc(path);
+      },
+    };
+  }
+
+  // ---------- unlock ----------
+  async function start(key) {
+    const plain = await decrypt(key, await fetchBin("data.bin"));
+    const payload = JSON.parse(new TextDecoder().decode(plain));
+    KEY = key;
+    window.__MP = { recipes: payload.recipes, migrate: CFG.demo ? null : (payload.migrate || null), makeDb, user, blank: BLANK, demo: !!CFG.demo };
+    document.getElementById("lock").hidden = true;
+    document.getElementById("app").hidden = false;
+    const s = document.createElement("script"); s.src = "app.js?v=" + CFG.salt.slice(0, 6); document.body.appendChild(s);
+  }
+  const form = document.getElementById("lockform"), err = document.getElementById("lockerr"), btn = document.getElementById("unlockbtn");
+  form.addEventListener("submit", async e => {
+    e.preventDefault(); err.textContent = ""; btn.disabled = true; btn.textContent = "Opening...";
+    try {
+      const key = await deriveKey(document.getElementById("pass").value.trim());
+      await start(key);
+      try { localStorage.setItem(KEY_LS, ub64(await crypto.subtle.exportKey("raw", key))); } catch (e2) {}
+    } catch (e2) {
+      err.textContent = e2 && e2.name === "OperationError" ? "That passcode didn't work. Check it and try again." : "Couldn't load the cookbooks. Check your connection and try again.";
+      btn.disabled = false; btn.textContent = "Open";
+    }
+  });
+  (async () => {
+    if (CFG.demo) {
+      const h = location.hash.slice(1).replace(/-/g, "+").replace(/_/g, "/");
+      document.getElementById("lock").querySelector("p").textContent = "Opening the preview...";
+      try { await start(await crypto.subtle.importKey("raw", b64(h + "=".repeat((4 - h.length % 4) % 4)), "AES-GCM", false, ["decrypt"])); }
+      catch (e) { document.getElementById("lock").querySelector("p").textContent = "This preview link is incomplete or out of date. Ask for a new one."; document.getElementById("pass").hidden = true; document.getElementById("unlockbtn").hidden = true; }
+      return;
+    }
+    let saved = null; try { saved = localStorage.getItem(KEY_LS); } catch (e) {}
+    if (!saved) { document.getElementById("pass").focus(); return; }
+    try { await start(await crypto.subtle.importKey("raw", b64(saved), "AES-GCM", false, ["decrypt"])); }
+    catch (e) { try { localStorage.removeItem(KEY_LS); } catch (e2) {} }
+  })();
+})();
+
+</script>
+</body>
+</html>
