@@ -3,10 +3,10 @@
 const RECIPES = window.__MP.recipes;
 const BY_ID = Object.fromEntries(RECIPES.map(r => [r.id, r]));
 const AISLE_ORDER = ["Produce","Meat","Deli","Dairy & Eggs","Cheese","Bread & Tortillas","Pasta, Rice & Grains","Canned & Jarred","Sauces & Condiments","International","Spices & Baking","Frozen","Drinks","Other"];
-const BOOKS = { sh: "Stealth Health Slow Cooker", mp: "The Meal Prep Cookbook" };
-const BOOK_SHORT = { sh: "Slow cooker book", mp: "Meal Prep book" };
+const BOOKS = { sh: "Stealth Health Slow Cooker", mp: "The Meal Prep Cookbook", sv: "Saved recipes" };
+const BOOK_SHORT = { sh: "Slow cooker book", mp: "Meal Prep book", sv: "Saved recipe" };
 const FILTERS = [
-  { key: "book", label: "Book", opts: [["sh","Slow cooker (Stealth Health)"],["mp","Stovetop & oven (Meal Prep Cookbook)"]] },
+  { key: "book", label: "Book", opts: [["sh","Slow cooker (Stealth Health)"],["mp","Stovetop & oven (Meal Prep Cookbook)"],["sv","Saved recipes"]] },
   { key: "protein", label: "Protein", opts: [["chicken","Chicken"],["beef","Beef"],["pork","Pork"],["seafood","Seafood"]] },
   { key: "format", label: "Style", opts: [["bowl","Rice bowls"],["pasta","Pasta & mac"],["soup","Soups & chili"],["wrap","Burritos & sandwiches"],["potato","Potatoes & fries"],["other","Something different"],["protein","Just the protein"]] },
   { key: "flavor", label: "Flavor", opts: [["cheesy","Cheesy comfort"],["texmex","Tex-Mex & Latin"],["asian","Asian"],["italian","Italian"],["american","American classics"],["med","Mediterranean"],["indian","Indian"],["sweet","Sweet & saucy"],["light","Fresh & lighter"],["lowcarb","Lower carb"]] },
@@ -41,7 +41,7 @@ for (const r of RECIPES) {
   const lo = txt.match(/\blow\s+for\s+(\d+(?:\s*[-–]\s*\d+)?)\s*(hours?|hrs?|minutes)/i);
   const hi = txt.match(/\bhigh\s+for\s+(\d+(?:\s*[-–]\s*\d+)?)\s*(hours?|hrs?|minutes)/i);
   const m = lo || hi;
-  r.time = m ? `${lo ? "Low" : "High"} ${m[1].replace(/\s*[-–]\s*/, "–")} ${/min/i.test(m[2]) ? "min" : "h"}` : "";
+  r.time = (r.book || "sh") === "sh" && m ? `${lo ? "Low" : "High"} ${m[1].replace(/\s*[-–]\s*/, "–")} ${/min/i.test(m[2]) ? "min" : "h"}` : "";
   r.short = r.title.replace(/ Rice Bowls?| Bowls?/i, "").replace(/Mac n[’'] Cheese|Mac N Cheese/i, "Mac");
 }
 
@@ -142,7 +142,7 @@ function matches(r) {
   return true;
 }
 function sorted(list) {
-  const by = { book: (a,b) => ((a.book==="mp")-(b.book==="mp")) || a.page - b.page, protein: (a,b) => (b.p||0) - (a.p||0), cal: (a,b) => (a.cal||9e9) - (b.cal||9e9), carb: (a,b) => (a.c ?? 999) - (b.c ?? 999), serv: (a,b) => (b.servings||0) - (a.servings||0), az: (a,b) => a.title.localeCompare(b.title) }[state.sort];
+  const by = { book: (a,b) => ({sh:0,mp:1,sv:2}[a.book||"sh"]-{sh:0,mp:1,sv:2}[b.book||"sh"]) || a.page - b.page, protein: (a,b) => (b.p||0) - (a.p||0), cal: (a,b) => (a.cal||9e9) - (b.cal||9e9), carb: (a,b) => (a.c ?? 999) - (b.c ?? 999), serv: (a,b) => (b.servings||0) - (a.servings||0), az: (a,b) => a.title.localeCompare(b.title) }[state.sort];
   return list.slice().sort(by);
 }
 
@@ -163,7 +163,7 @@ function renderFilters() {
 const HEAT = ["Mild","Medium heat","Spicy"];
 function heatDots(h) { return `<span class="heat-wrap"><span class="heatdots" aria-hidden="true">${[0,1,2].map(i => `<i class="${i<=h?"on":""}"></i>`).join("")}</span><span class="heatlbl h${h}">${HEAT[h]}</span></span>`; }
 function macroLabel(r) {
-  return `<div class="label" role="group" aria-label="Per serving"><div><b>${r.cal ?? "–"}</b><span>cal</span></div><div><b>${r.p ?? "–"}g</b><span>protein</span></div><div><b>${r.c ?? "–"}g</b><span>carbs</span></div><div><b>${r.f ?? "–"}g</b><span>fat</span></div></div>`;
+  return `<div class="label" role="group" aria-label="Per serving"><div><b>${r.cal ?? "–"}</b><span>cal</span></div><div><b>${r.p ?? "–"}${r.p == null ? "" : "g"}</b><span>protein</span></div><div><b>${r.c ?? "–"}${r.c == null ? "" : "g"}</b><span>carbs</span></div><div><b>${r.f ?? "–"}${r.f == null ? "" : "g"}</b><span>fat</span></div></div>`;
 }
 function verdictBadge(id) {
   const v = state.rec[id]?.verdict; if (!v) return "";
@@ -172,12 +172,12 @@ function verdictBadge(id) {
 function card(r) {
   const on = state.picks.has(r.id);
   return `<article class="rcard${on?" picked":""}">
-    <button class="photo" data-open="${r.id}" aria-label="Open ${esc(r.title)}"><img data-photo="${r.id}" src="${window.__MP.blank}" alt="" loading="lazy" decoding="async" onerror="this.remove()"><span class="servpill">${r.batch ? "Whole batch" : `${fmtServ(r.servings * (on ? scaleOf(r.id) : 1))} servings`}${on && scaleOf(r.id) !== 1 ? ` · ${scaleLabel(scaleOf(r.id))}` : ""}</span></button>
+    <button class="photo" data-open="${r.id}" aria-label="Open ${esc(r.title)}"><img data-photo="${r.id}" src="${window.__MP.blank}" alt="" loading="lazy" decoding="async" onerror="this.remove()"><span class="servpill">${r.batch ? "Whole batch" : !r.servings ? "Servings not listed" : `${fmtServ(r.servings * (on ? scaleOf(r.id) : 1))} servings`}${on && scaleOf(r.id) !== 1 ? ` · ${scaleLabel(scaleOf(r.id))}` : ""}</span></button>
     <button class="title" data-open="${r.id}">${esc(r.title)}</button>
     <div class="meta">${heatDots(r.heat)}<span>${CUISINE[r.cuisine]}</span><span>${FORMAT[r.format]}</span>${r.time?`<span>${r.time}</span>`:""}</div>
     <div class="bookline">${BOOK_SHORT[r.book||"sh"]}</div>
     ${macroLabel(r)}
-    <div class="rfoot"><span class="meta">${r.batch ? "Macros for whole batch" : `Makes ${fmtServ(r.servings * (on ? scaleOf(r.id) : 1))}`} ${verdictBadge(r.id)}</span>
+    <div class="rfoot"><span class="meta">${r.batch ? "Macros for whole batch" : !r.servings ? "Servings not listed" : `Makes ${fmtServ(r.servings * (on ? scaleOf(r.id) : 1))}`} ${verdictBadge(r.id)}</span>
       <button class="addbtn${on?" on":""}" data-pick="${r.id}" ${state.canWrite?"":"disabled"} aria-pressed="${on}">${on?"✓ This week":"+ Add"}</button></div>
   </article>`;
 }
@@ -210,7 +210,7 @@ function shopping() {
 }
 // ---------- batch scaling ----------
 const SCALES = [0.5, 1, 1.5, 2, 3];
-function fmtServ(n) { return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, ""); }
+function fmtServ(n) { if (!Number.isFinite(n)) return "?"; return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, ""); }
 function scaleOf(id) { return state.scale.get(id) || 1; }
 function scaleLabel(k) { return k === 1 ? "as written" : (k === 0.5 ? "½×" : k === 1.5 ? "1½×" : k + "×"); }
 const UNITS = new Set(["g","kg","ml","l","oz","lb","lbs","tsp","tbsp","cup","cups","x","each","to","or","and","heaped","heaping","level","approx","about"]);
@@ -319,13 +319,13 @@ function recipeBody(r, opts = {}) {
   const conv = Object.fromEntries((r.shop || []).map(x => [x[5], x]));
   const k = state.picks.has(r.id) ? scaleOf(r.id) : 1;
   const ingLi = i => { const sl = scaleLine(i, k); const e = conv[i] && conv[i][3] ? [conv[i][0], 0, 0, conv[i][3] * k] : null; return `<li>${esc(sl.t)}${k !== 1 && !sl.done ? ` <span class="us">(${scaleLabel(k)})</span>` : ""}${lineUS(i, e)}</li>`; };
-  const scaleCtl = r.batch ? "" : `<div class="scalebox"><div><div class="eyebrow">Batch size</div><div class="scaleserv">Makes <b>${fmtServ(r.servings * k)}</b> servings${k !== 1 ? ` <span class="us">(book: ${r.servings})</span>` : ""}</div></div><div class="chips">${SCALES.map(x => `<button class="chip" data-scale="${x}" data-id="${r.id}" aria-pressed="${k === x}" ${state.canWrite ? "" : "disabled"}>${x === 1 ? "1× (book)" : scaleLabel(x)}</button>`).join("")}</div></div>`;
+  const scaleCtl = (r.batch || !r.servings) ? "" : `<div class="scalebox"><div><div class="eyebrow">Batch size</div><div class="scaleserv">Makes <b>${fmtServ(r.servings * k)}</b> servings${k !== 1 ? ` <span class="us">(book: ${r.servings})</span>` : ""}</div></div><div class="chips">${SCALES.map(x => `<button class="chip" data-scale="${x}" data-id="${r.id}" aria-pressed="${k === x}" ${state.canWrite ? "" : "disabled"}>${x === 1 ? "1× (book)" : scaleLabel(x)}</button>`).join("")}</div></div>`;
   const v = state.rec[r.id] || {};
   return `<div class="recipe">
     <img class="hero" data-photo="${r.id}" src="${window.__MP.blank}" alt="${esc(r.title)}" decoding="async" onerror="this.remove()">
-    ${opts.head ? "" : `<div><h2>${esc(r.title)}</h2><div class="meta" style="margin-top:6px">${heatDots(r.heat)}<span>${CUISINE[r.cuisine]}</span><span>${FORMAT[r.format]}</span>${r.time?`<span>${r.time}</span>`:""}<span>${BOOKS[r.book||"sh"]}, p. ${r.page}</span></div>${r.blurb?`<p class="sub" style="margin-top:8px">${esc(r.blurb)}</p>`:""}</div>`}
+    ${opts.head ? "" : `<div><h2>${esc(r.title)}</h2><div class="meta" style="margin-top:6px">${heatDots(r.heat)}<span>${CUISINE[r.cuisine]}</span><span>${FORMAT[r.format]}</span>${r.time?`<span>${r.time}</span>`:""}<span>${BOOKS[r.book||"sh"]}${r.book==="sv"?"":`, p. ${r.page}`}</span></div>${r.blurb?`<p class="sub" style="margin-top:8px">${esc(r.blurb)}</p>`:""}</div>`}
     ${macroLabel(r)}
-    <div class="meta">${r.batch ? "Macros are for the whole batch." : "Macros are per serving."}</div>
+    <div class="meta">${r.batch ? "Macros are for the whole batch." : r.cal == null ? "No macros listed for this recipe." : "Macros are per serving."}</div>
     ${scaleCtl}
     <div><div class="eyebrow" style="margin-bottom:2px">Ingredients</div><p class="sub" style="margin:0 0 8px;font-size:13px">Gray ≈ amounts are US equivalents (weight, cups, or how many) and are approximate.</p>
       <div class="ingsec">${r.sections.map(s => `<div>${s.name?`<h4>${esc(s.name)}</h4>`:""}<ul>${s.items.map(ingLi).join("")}</ul></div>`).join("")}</div></div>
@@ -367,7 +367,7 @@ function renderCook() {
   const active = document.activeElement?.dataset?.notes;
   if (active && el.querySelector(`[data-notes="${active}"]`)) { el.querySelectorAll(".chip[data-verdict]").forEach(b => b.setAttribute("aria-pressed", (state.rec[b.dataset.id]?.verdict||"") === b.dataset.verdict)); return; }
   el.innerHTML = picks.map(r => `<article class="cookcard">
-    <div class="chead"><div><h2>${esc(r.title)}</h2><div class="meta" style="margin-top:6px">${heatDots(r.heat)}<span>${CUISINE[r.cuisine]}</span>${r.time?`<span>${r.time}</span>`:""}<span>${BOOKS[r.book||"sh"]}, p. ${r.page}</span></div></div>
+    <div class="chead"><div><h2>${esc(r.title)}</h2><div class="meta" style="margin-top:6px">${heatDots(r.heat)}<span>${CUISINE[r.cuisine]}</span>${r.time?`<span>${r.time}</span>`:""}<span>${BOOKS[r.book||"sh"]}${r.book==="sv"?"":`, p. ${r.page}`}</span></div></div>
       <button class="btn ghost" data-pick="${r.id}" ${state.canWrite?"":"disabled"}>Remove from week</button></div>
     ${recipeBody(r, { head: true })}</article>`).join("");
 }
@@ -507,7 +507,7 @@ document.getElementById("d-body").addEventListener("click", async e => {
 loadUi(); loadLocal();
 document.getElementById("sort").value = state.sort;
 const mealCount = RECIPES.filter(r => r.kind === "meal").length;
-document.getElementById("pick-sub").textContent = `${mealCount} meals and ${RECIPES.length - mealCount} batch proteins from two cookbooks: the Stealth Health Slow Cooker Cookbook and The Meal Prep Cookbook. Tap a few moods, add what sounds good, and the shopping list builds itself.`;
+document.getElementById("pick-sub").textContent = `${mealCount} meals and ${RECIPES.length - mealCount} batch proteins from the Stealth Health Slow Cooker Cookbook, The Meal Prep Cookbook, and recipes you've saved. Tap a few moods, add what sounds good, and the shopping list builds itself.`;
 renderFilters(); setView(state.view); render();
 
 (async () => {
